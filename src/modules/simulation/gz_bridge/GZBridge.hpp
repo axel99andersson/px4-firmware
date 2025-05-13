@@ -179,6 +179,11 @@ private:
 	const float _vel_noise_density = 0.2f;      // Velocity noise process density
 	const float _vel_markov_time = 0.85f;       // Velocity Markov process coefficient
 
+	// Attack parameters
+	uint64_t _simulation_start_time{0};
+	bool _increased_noise{false};		// Flag if we've increased noise
+	float _gyro_noise_variance{0.01f};	// Initial Noise variance
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SIM_GPS_USED>) _sim_gps_used
 	)

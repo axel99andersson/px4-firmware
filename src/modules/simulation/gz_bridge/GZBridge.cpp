@@ -294,10 +294,53 @@ void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &msg)
 
 	this->_temperature = report.temperature;
 }
+static float generate_wgn()
+{
+	// generate white Gaussian noise sample with std=1
+
+	// algorithm 1:
+	// float temp=((float)(rand()+1))/(((float)RAND_MAX+1.0f));
+	// return sqrtf(-2.0f*logf(temp))*cosf(2.0f*M_PI_F*rand()/RAND_MAX);
+	// algorithm 2: from BlockRandGauss.hpp
+	static float V1, V2, S;
+	static bool phase = true;
+	float X;
+
+	if (phase) {
+		do {
+			float U1 = (float)rand() / (float)RAND_MAX;
+			float U2 = (float)rand() / (float)RAND_MAX;
+			V1 = 2.0f * U1 - 1.0f;
+			V2 = 2.0f * U2 - 1.0f;
+			S = V1 * V1 + V2 * V2;
+		} while (S >= 1.0f || fabsf(S) < 1e-8f);
+
+		X = V1 * float(sqrtf(-2.0f * float(logf(S)) / S));
+
+	} else {
+		X = V2 * float(sqrtf(-2.0f * float(logf(S)) / S));
+	}
+
+	phase = !phase;
+	return X;
+}
 
 void GZBridge::imuCallback(const gz::msgs::IMU &msg)
 {
 	const uint64_t timestamp = hrt_absolute_time();
+
+	/* Attack Code */
+	if (_simulation_start_time == 0) {
+		_simulation_start_time = timestamp;
+	}
+
+	const uint64_t elapsed_time_since_start = timestamp - _simulation_start_time;
+
+	if (elapsed_time_since_start > 30_s && !_increased_noise) {
+		PX4_INFO("Increasing gyroscope/accelerometer noise variance...");
+		_gyro_noise_variance *= 20.0f;
+		_increased_noise = true;
+	}
 
 	// FLU -> FRD
 	static const auto q_FLU_to_FRD = gz::math::Quaterniond(0, 1, 0, 0);
@@ -323,6 +366,21 @@ void GZBridge::imuCallback(const gz::msgs::IMU &msg)
 	accel.x = accel_b.X();
 	accel.y = accel_b.Y();
 	accel.z = accel_b.Z();
+
+	/* Accelerometer GWN Attack */
+	// if (elapsed_time_since_start > 30_s) {
+	// 	accel.x += generate_wgn()*sqrtf(_gyro_noise_variance);
+	// 	accel.y += generate_wgn()*sqrtf(_gyro_noise_variance);
+	// 	accel.z += generate_wgn()*sqrtf(_gyro_noise_variance);
+	// }
+	/* Accelerometer Bias Attack */
+	// if (elapsed_time_since_start > 40_s && elapsed_time_since_start < 45_s) {
+	// 	PX4_INFO("BIAS ATTACK ON ACCELEROMETER");
+	// 	accel.x += 5.0f;
+	// 	accel.y += 5.0f;
+	// 	accel.z += 5.0f;
+	// }
+
 	accel.temperature = NAN;
 	accel.samples = 1;
 	_sensor_accel_pub.publish(accel);
@@ -340,6 +398,15 @@ void GZBridge::imuCallback(const gz::msgs::IMU &msg)
 	gyro.x = gyro_b.X();
 	gyro.y = gyro_b.Y();
 	gyro.z = gyro_b.Z();
+
+	/* Gyroscope Attack */
+	// if (elapsed_time_since_start > 30_s) {
+	// 	gyro.x += generate_wgn()*sqrtf(_gyro_noise_variance);
+	// 	gyro.y += generate_wgn()*sqrtf(_gyro_noise_variance);
+	// 	gyro.z += generate_wgn()*sqrtf(_gyro_noise_variance);
+	// }
+
+
 	gyro.temperature = NAN;
 	gyro.samples = 1;
 	_sensor_gyro_pub.publish(gyro);
@@ -495,36 +562,6 @@ void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &msg)
 	_visual_odometry_pub.publish(report);
 }
 
-static float generate_wgn()
-{
-	// generate white Gaussian noise sample with std=1
-
-	// algorithm 1:
-	// float temp=((float)(rand()+1))/(((float)RAND_MAX+1.0f));
-	// return sqrtf(-2.0f*logf(temp))*cosf(2.0f*M_PI_F*rand()/RAND_MAX);
-	// algorithm 2: from BlockRandGauss.hpp
-	static float V1, V2, S;
-	static bool phase = true;
-	float X;
-
-	if (phase) {
-		do {
-			float U1 = (float)rand() / (float)RAND_MAX;
-			float U2 = (float)rand() / (float)RAND_MAX;
-			V1 = 2.0f * U1 - 1.0f;
-			V2 = 2.0f * U2 - 1.0f;
-			S = V1 * V1 + V2 * V2;
-		} while (S >= 1.0f || fabsf(S) < 1e-8f);
-
-		X = V1 * float(sqrtf(-2.0f * float(logf(S)) / S));
-
-	} else {
-		X = V2 * float(sqrtf(-2.0f * float(logf(S)) / S));
-	}
-
-	phase = !phase;
-	return X;
-}
 
 void GZBridge::addGpsNoise(double &latitude, double &longitude, double &altitude,
 			   float &vel_north, float &vel_east, float &vel_down)
