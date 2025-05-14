@@ -9,6 +9,7 @@
 #ifndef FUNCTIONS_H
 #define FUNCTIONS_H
 #include <stddef.h>
+#include <vector>
 struct Imu{
     //accelerometer
     double ay;
@@ -51,6 +52,8 @@ void eul2rotmat(double angles[3],double rotmatrix[3][3]);
 void transforMinv(double angles[3],double Minv_out[3][3]);
 void update_estimated_states(double estimated_states[12][1],double dxangles[3][1],double dxangularspeeds[3],double dxposition[3],double dxvelocity[3],double KRes[12][1],double dt);
 void updateP(double Pdot[12][12],double P[12][12],double dt);
+std::vector<double> getResiduals(double sensors[9][1], double controls[4],double dt);
+std::vector<bool> getSystemCompromisedPerState();
 
 //initialize
 template<size_t row,size_t col> void initializeMatrix(double array[row][col]){

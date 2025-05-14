@@ -49,6 +49,8 @@
 #include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/reference_monitor_outputs.h>
+#include <uORB/Publication.hpp>
 #include <drivers/drv_hrt.h>
 //#include <fstream>
 //std::fstream dataFile("DF_time.txt",std::ios::out);
@@ -176,6 +178,8 @@ void ReferenceMonitor::run(){
     int vehicle_magnetometer_sub = orb_subscribe(ORB_ID(vehicle_magnetometer));
     int vehicle_gps_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
     int actuator_outputs_sub = orb_subscribe(ORB_ID(actuator_outputs));
+    // Publish to the new topic somehow
+    uORB::Publication<reference_monitor_outputs_s> refmon_pub{ORB_ID(reference_monitor_outputs)};
 
     //structures needed
     struct sensor_combined_s raw ={};
@@ -188,6 +192,7 @@ void ReferenceMonitor::run(){
     struct AngleInfo roll_angle = {};
     struct AngleInfo pitch_angle = {};
     struct AngleInfo yaw_angle = {};
+    std::vector<double> residuals;
 
     //parameters needed for data fusion function
     double m1;          //intermediate variables for yaw calculation
@@ -335,7 +340,24 @@ void ReferenceMonitor::run(){
         //PX4_ERR("ND DF: %llu us", endTimeDF-startTimeDF);
         if(actuators_updated){
           // hrt_abstime startTime = hrt_absolute_time();
-            EKF(sensors,controls,dt);
+
+            // Get residuals (run EKF and compare to sensors)
+            residuals = getResiduals(sensors,controls,dt);
+            // Prepare message to publish
+            reference_monitor_outputs_s msg{};
+            msg.timestamp = hrt_absolute_time();
+            msg.res_roll = (float)residuals[0];
+            msg.res_pitch = (float)residuals[1];
+            msg.res_yaw = (float)residuals[2];
+            msg.res_roll_rate = (float)residuals[3];
+            msg.res_pitch_rate = (float)residuals[4];
+            msg.res_yaw_rate = (float)residuals[5];
+            msg.res_x_pos = (float)residuals[6];
+            msg.res_y_pos = (float)residuals[7];
+            msg.res_z_pos = (float)residuals[8];
+
+            // Publish
+            refmon_pub.publish(msg);
 
             //hrt_abstime endTime = hrt_absolute_time();
             //dataFile2<<"ND_EKF: "<<endTime-startTime<<"\n";
