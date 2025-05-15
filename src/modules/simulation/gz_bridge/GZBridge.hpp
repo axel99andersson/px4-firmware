@@ -67,6 +67,8 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_odometry.h>
 
+#include <uORB/topics/attack_status.h>
+
 #include <gz/math.hh>
 #include <gz/msgs.hh>
 #include <gz/transport.hh>
@@ -141,7 +143,7 @@ private:
 	uORB::PublicationMulti<sensor_mag_s>          _sensor_mag_pub{ORB_ID(sensor_mag)};
 	uORB::PublicationMulti<vehicle_odometry_s>    _visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 	uORB::PublicationMulti<sensor_optical_flow_s> _optical_flow_pub{ORB_ID(sensor_optical_flow)};
-
+	uORB::Publication<attack_status_s> 	      _attack_status_pub{ORB_ID(attack_status)};
 
 	GZMixingInterfaceESC   _mixing_interface_esc{_node};
 	GZMixingInterfaceServo _mixing_interface_servo{_node};

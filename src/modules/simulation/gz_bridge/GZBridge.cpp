@@ -336,8 +336,8 @@ void GZBridge::imuCallback(const gz::msgs::IMU &msg)
 
 	const uint64_t elapsed_time_since_start = timestamp - _simulation_start_time;
 
-	if (elapsed_time_since_start > 30_s && !_increased_noise) {
-		PX4_INFO("Increasing gyroscope/accelerometer noise variance...");
+	if (elapsed_time_since_start > 40_s && !_increased_noise) {
+		PX4_INFO("Attack Started...");
 		_gyro_noise_variance *= 20.0f;
 		_increased_noise = true;
 	}
@@ -399,14 +399,49 @@ void GZBridge::imuCallback(const gz::msgs::IMU &msg)
 	gyro.y = gyro_b.Y();
 	gyro.z = gyro_b.Z();
 
-	/* Gyroscope Attack */
+	/* Gyroscope GWN Attack */
 	// if (elapsed_time_since_start > 30_s) {
 	// 	gyro.x += generate_wgn()*sqrtf(_gyro_noise_variance);
 	// 	gyro.y += generate_wgn()*sqrtf(_gyro_noise_variance);
 	// 	gyro.z += generate_wgn()*sqrtf(_gyro_noise_variance);
 	// }
 
+	/* Gyroscope Bias Attack */
+	if (elapsed_time_since_start > 40_s && elapsed_time_since_start < 55_s) {
+		gyro.x += 0.05f;
+		attack_status_s attack_msg{};
+		attack_msg.timestamp = timestamp;
+		attack_msg.gyro_attack_active = true;
 
+		_attack_status_pub.publish(attack_msg);
+	}
+
+	else if (elapsed_time_since_start > 70_s && elapsed_time_since_start < 85_s) {
+		gyro.x += 0.05f;
+		attack_status_s attack_msg{};
+		attack_msg.timestamp = timestamp;
+		attack_msg.gyro_attack_active = true;
+
+		_attack_status_pub.publish(attack_msg);
+	}
+
+	else if (elapsed_time_since_start > 100_s && elapsed_time_since_start < 115_s) {
+		gyro.x += 0.05f;
+		attack_status_s attack_msg{};
+		attack_msg.timestamp = timestamp;
+		attack_msg.gyro_attack_active = true;
+
+		_attack_status_pub.publish(attack_msg);
+	}
+
+	else if (elapsed_time_since_start > 130_s && elapsed_time_since_start < 145_s) {
+		gyro.x += 0.05f;
+		attack_status_s attack_msg{};
+		attack_msg.timestamp = timestamp;
+		attack_msg.gyro_attack_active = true;
+
+		_attack_status_pub.publish(attack_msg);
+	}
 	gyro.temperature = NAN;
 	gyro.samples = 1;
 	_sensor_gyro_pub.publish(gyro);

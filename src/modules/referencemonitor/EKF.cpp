@@ -115,9 +115,9 @@ void cusum(double residual[9]){
     }
 
 
-    for(int i=0;i<9;i++) {
-        PX4_ERR("CUSUM: %f", CUSUM[i]);
-    }
+    // for(int i=0;i<9;i++) {
+    //     PX4_ERR("CUSUM: %f", CUSUM[i]);
+    // }
 }
 
 

@@ -211,6 +211,7 @@ void LoggedTopics::add_default_topics()
 
 	// residuals from reference monitor
 	add_topic("reference_monitor_outputs", 200);
+	add_topic("attack_status", 200);
 
 	// SYS_HITL: default ground truth logging for simulation
 	int32_t sys_hitl = 0;
